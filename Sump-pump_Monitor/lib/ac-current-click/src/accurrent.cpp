@@ -212,6 +212,7 @@ float accurrent_get_a ( accurrent_t *ctx )
     
     // Average ADC value based on sum of the ADC readings
     avg = ( float ) (sum / ACCURRENT_ADC_ITERATION_SIZE );
+    //avg = ( avg / max_val ) * 8.25 * 10;
     avg = ( avg / max_val ) * 8.25;
 
     return avg;                                   // Returns the average ADC value
