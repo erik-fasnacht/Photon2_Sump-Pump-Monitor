@@ -14,6 +14,10 @@
 //library includes
 #include "accurrent.h"
 #include "temphum13.h"
+
+//#include "HC-SR04.h"
+#include "HC_SR04.h"
+
 #include "JsonParserGeneratorRK.h"
 
 //#defines
@@ -24,8 +28,9 @@ void setup();
 void loop();
 void publish_status();
 void ACcurrent_function();
-uint8_t temphum13_function();
-#line 17 "/Users/Erik-Home/Documents/GitHub/Photon2-Project_Erik/Sump-pump_Monitor/src/Sump-pump_Monitor.ino"
+void temphum13_function();
+void sr04_function();
+#line 21 "/Users/Erik-Home/Documents/GitHub/Photon2-Project_Erik/Sump-pump_Monitor/src/Sump-pump_Monitor.ino"
 enum statusCodes
 {
   PUMP_OFF = 0,
@@ -40,14 +45,23 @@ enum statusCodes
 
 // How often to check the sensor. Default: Every 1 second
 const std::chrono::milliseconds currentInterval = 1s;           //check current sensor every 1 second
-const std::chrono::milliseconds waterInterval = 10s;            //check water level every 10 second
+
+//TODO fix value
+const std::chrono::milliseconds waterInterval = 1s;             //check water level every 10 second
+//const std::chrono::milliseconds waterInterval = 10s;            //check water level every 10 second
+
 const std::chrono::milliseconds temperatureInterval = 10min;    //check temp/hum sensor every 10 min
 const std::chrono::milliseconds publishInterval = 60min;        //publish every 60 min
+
+//define signals for hc-sr04 sensor
+const int echoPin = A5;
+const int trigPin = S4;
+HC_SR04 rangefinder = HC_SR04(trigPin, echoPin);
 
 //particle system mode and thread
 SYSTEM_MODE(SEMI_AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
-
+ 
 SerialLogHandler logHandler(LOG_LEVEL_TRACE);   //set logging level
 
 //static typedefs from libraries
@@ -94,14 +108,11 @@ void setup()
   accurrent_cfg_setup( &accurrent_cfg ); 
   ACCURRENT_MAP_MIKROBUS( accurrent_cfg, MIKROBUS_2 );    //set BUS2 for ac current click
   accurrent_init( &accurrent, &accurrent_cfg );
-
-  
 }
 
 // loop() runs over and over again, as quickly as it can execute.
 void loop() 
 {
-  // The core of your code will likely live here.
 
   //variables for checking values intervals
   static unsigned long currentCheck = 0;
@@ -126,8 +137,8 @@ void loop()
   //check water level
   if (millis() - waterCheck >= waterInterval.count())
 	{
-		waterCheck = millis();   //set current check to current time
-    //TODO insert water level function
+		waterCheck = millis();    //set current check to current time
+    sr04_function();          //check water level   
   }
 
   //publish status message
@@ -135,7 +146,6 @@ void loop()
 	{
 		publishCheck = millis();    //set current check to current time
     publish_status();           //publish status message
-   
   }
 
 }
@@ -208,7 +218,7 @@ void ACcurrent_function()
 }
 
 //temphum13 function
-uint8_t temphum13_function()
+void temphum13_function()
 {
   //local variables
   static float tempC;
@@ -239,9 +249,21 @@ uint8_t temphum13_function()
       Log.trace("high humidity event");   //debug message
       Particle.publish("Humidity Warning", String::format("%.2f", humidity));   //send warning message
     }
-
-    return TRUE;    //return success
   }
-
-  return FALSE;   //return fail
 }
+
+//HC-SR04 function
+void sr04_function()
+{
+  static double cm;
+  static double inches;
+
+  cm = rangefinder.getDistanceCM();
+  inches = rangefinder.getDistanceInch();
+
+  //debug messages
+  Log.trace("Sensor in CM : %.2f \n", cm);
+  Log.trace("Sensor in IN : %.2f \n", inches);
+
+}
+
