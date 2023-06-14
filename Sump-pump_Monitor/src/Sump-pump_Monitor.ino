@@ -11,6 +11,9 @@
 #include "HC_SR04.h"
 #include "JsonParserGeneratorRK.h"
 
+//#defines for app
+#define MAXMESSAGE 5    //defines max number of messages, limits publishes
+
 //enum for various status codes
 enum statusCodes
 {
@@ -19,8 +22,9 @@ enum statusCodes
   NORMAL_STATUS = 2,
   WATER_WARNING = 3,
   CURRENT_WARNING = 4,
-  TEMPERATURE_WARNING = 5,
-  HUMIDITY_WARNING = 6
+  STUCK_WARNING = 5,
+  TEMPERATURE_WARNING = 6,
+  HUMIDITY_WARNING = 7
 };
 
 //how often to check system, time intervals
@@ -40,7 +44,7 @@ SYSTEM_THREAD(ENABLED);
  
 SerialLogHandler logHandler(LOG_LEVEL_TRACE);   //set logging level
 
-//static typedefs from libraries
+//static typedefs from mikroE libraries
 static accurrent_t accurrent;
 static temphum13_t temphum13;
 
@@ -58,23 +62,32 @@ const float LOW_TEMP = 45.0;        //low temp value
 const float HIGH_TEMP = 95.0;       //high temp value    
 const float HIGH_HUM = 80.0;        //high humidity value TODO, modify
 
-
 //global variables
-static float temperature;       //temperature
-static float humidity;          //humdity
-static uint8_t pumpStatus;      //pump status
-static uint8_t systemStatus;    //system status
-static uint16_t pumpCount;      //pump count
+float temperature;        //temperature
+float humidity;           //humdity
+uint8_t systemStatus;     //system status
+uint16_t pumpCount;       //pump count, doesn't get reset by function
+
+//variables that get reset by particle function, limts amount of messages when warning/error 
+uint8_t waterCount;     //count for water level message
+uint8_t currentCount;   //count for high current message
+uint8_t stuckCount;     //count for pump stuck on message
+uint8_t tempCount;      //count for temperature message
+uint8_t humCount;       //count for humidity message
+uint8_t errorCount;     //count for sensor bus error
 
 
 // setup() runs once, when the device is first turned on.
 void setup() 
 {
-  //todo, add particle variables and functions
+  //setup cloud functions, best practice to do first in setup loop
+ 	Particle.function("Reset Counts", resetCount);    //reset counts
   
-  Serial.begin(9600);   //set baud rate for debug messageds
+  Serial.begin(9600);   //set baud rate for debug messages
 
   Particle.connect();   //connect to particle cloud
+
+  systemStatus = NORMAL_STATUS;   //set system status, normal at startup
 
   //from temphum13 library
   temphum13_cfg_t temphum13_cfg;
@@ -127,9 +140,7 @@ void loop()
 		publishCheck = millis();    //set current check to current time
     publish_status();           //publish status message
   }
-
 }
-
 
 void publish_status()
 {
@@ -141,7 +152,6 @@ void publish_status()
       {
         JsonWriterAutoObject obj(&jw);						                    //creates an object to pass JSON          
         jw.insertKeyValue("System Status", systemStatus);		          //set field for system status
-        jw.insertKeyValue("Pump Status", pumpStatus);		              //set field for pump status
         jw.insertKeyValue("Pump Count over Last Hour", pumpCount);    //set field for pump count
         jw.insertKeyValue("Temperature (°F)", temperature);		        //set field for temperature
         jw.insertKeyValue("Humidity (%)", humidity);			            //set field for humidity
@@ -150,9 +160,25 @@ void publish_status()
 
       //Publish data packet consuming 1 of the pooled Cloud Data Operations (DOPs)
       Particle.publish("Status Message", jw.getBuffer(), PRIVATE );
-    }
-    
-    pumpCount = 0;    //reset pump count
+
+      pumpCount = 0;    //reset pump count
+    } 
+    else
+    {
+      //store and forward
+    } 
+}
+
+//reset function
+int resetCount(String value)
+{
+  waterCount = 0;     //count for water level message
+  currentCount = 0;   //count for high current message
+  stuckCount = 0;     //count for pump stuck on message
+  tempCount = 0;      //count for temperature message
+  humCount = 0;       //count for humidity message
+  errorCount = 0;     //count for sensor bus error
+  return true;        //return true
 }
 
 //accurrent function
@@ -160,7 +186,7 @@ void ACcurrent_function()
 {
   //local variables
   float ac_current;             //variable for the measured current value
-  static uint8_t temp_count;    //variable for the pump count
+  static uint16_t temp_count;   //variable for determing if pump just turned on
 
   //measure current
   ac_current = accurrent_get_a( &accurrent );             //measure the current
@@ -171,28 +197,59 @@ void ACcurrent_function()
   {
     if (temp_count == 0)    //pump just turned on
     {
-      
       Log.trace("Pump just turned on");   //debug message
       pumpCount++;                        //increment the pump count
     }
     
     Log.trace("Pump is still on");    //debug message
-    pumpStatus = PUMP_ON;
     temp_count++;                     //increment pump counter 
   }
 
+  //pump stuck on event
+  if (temp_count > 30)
+  {
+    systemStatus = STUCK_WARNING;       //set system status
+    Log.trace("High Current Event");    //debug message
+   
+    if (stuckCount < MAXMESSAGE)
+    {
+      Particle.publish("High Current Event", String::format("%06.4f", ac_current));   //send warning message
+    }
+    else
+    {
+      stuckCount++;   //increment high current count
+    }
+  }
+  else    //normal operation
+  {
+    systemStatus = NORMAL_STATUS;   //set system status
+  }
+  
   //high current event
   if (ac_current > HIGH_CURRENT)
   {
-    Log.trace("High Current Event");   //debug message
-    Particle.publish("High Current Event", String::format("%06.4f", ac_current));   //send warning message
+    systemStatus = CURRENT_WARNING;     //set system status
+    Log.trace("High Current Event");    //debug message
+
+    if (currentCount < MAXMESSAGE)
+    {     
+      Particle.publish("High Current Event", String::format("%06.4f", ac_current));   //send warning message
+    }
+    else
+    {
+      currentCount++;   //increment high current count
+    }
+    
+  }
+  else    //normal operation
+  {
+    systemStatus = NORMAL_STATUS;   //set system status
   }
 
   //reset temp_count
   if((ac_current < IDLE_CURRENT) && (temp_count > 0))
   {
     temp_count = 0;
-    pumpStatus = PUMP_OFF;
   }
 
 }
@@ -201,16 +258,15 @@ void ACcurrent_function()
 void temphum13_function()
 {
   //local variables
-  static float tempC;
- // static
+  float tempC;
   
-  tempC = temphum13_get_temperature( &temphum13 );
-  humidity = temphum13_get_humidity( &temphum13 );
-    
-  if ((tempC != 65536.0) && (humidity != 65536.0))    //if values return don't equal 0xFF, IE I2C bus is idle
+  tempC = temphum13_get_temperature(&temphum13);    //get temperature from sensor
+  
+  if (tempC != 65536.0)    //if value return doesn't equal 0xFF, IE I2C bus is idle
   {
     //set new value to global value
-    temperature = (tempC * 1.8) + 32;		//convert celsuis to fahrenheit
+    temperature = (tempC * 1.8) + 32;		              //convert celsuis to fahrenheit
+    humidity = temphum13_get_humidity(&temphum13);    //get new humidity value
 
     //debug messages
     Log.trace("Temperature °F : %.2f \n", temperature);
@@ -219,16 +275,53 @@ void temphum13_function()
     //temperature outside of window?
     if ((temperature > HIGH_TEMP) || (temperature < LOW_TEMP))
     {
+      systemStatus = TEMPERATURE_WARNING;           //set system status
       Log.trace("temperature outside of window");   //debug message
-      Particle.publish("Temperature Warning", String::format("%.2f", temperature));   //send warning message
+
+      if(tempCount < MAXMESSAGE)
+      {
+        Particle.publish("Temperature Warning", String::format("%.2f", temperature));   //send warning message
+      }
+      else
+      {
+        tempCount++;    //increment message count
+      }
+    }
+    else    //normal operation
+    {
+      systemStatus = NORMAL_STATUS;   //set system status
     }
 
     //humdity is too high?
     if (humidity > HIGH_HUM)
     {
+      systemStatus = HUMIDITY_WARNING;    //set system status
       Log.trace("high humidity event");   //debug message
-      Particle.publish("Humidity Warning", String::format("%.2f", humidity));   //send warning message
+
+      if(humCount < MAXMESSAGE)
+      {
+        Particle.publish("Humidity Warning", String::format("%.2f", humidity));   //send warning message
+      }
+      else
+      {
+        humCount++;   //increment message count
+      }
     }
+    else    //normal operation
+    {
+      systemStatus = NORMAL_STATUS;   //set system status
+    }
+  }
+  else
+  {
+    if(errorCount < MAXMESSAGE)
+    {
+      Particle.publish("temp/humdity sensor error");   //send error message
+    }
+    else
+    {
+      errorCount++;   //increment error message count
+    }   
   }
 }
 
@@ -236,22 +329,27 @@ void temphum13_function()
 void sr04_function()
 {
   //local variables
-  static double cm;
   static double inches;
 
-  cm = rangefinder.getDistanceCM();
   inches = rangefinder.getDistanceInch();
-
-  //debug messages
-  Log.trace("Sensor in CM : %.2f \n", cm);
-  Log.trace("Sensor in IN : %.2f \n", inches);
+  Log.trace("Sensor in IN : %.2f \n", inches);    //debug message
 
   if (inches <= HIGH_WATER)
   {
-    systemStatus = WATER_WARNING;                                         //set system status
-    Log.trace("high water event");                                        //debug message
-    Particle.publish("Water Warnign", String::format("%.2f", inches));    //send warning message
+    systemStatus = WATER_WARNING;     //set system status
+    Log.trace("high water event");    //debug message
+
+    if(waterCount < MAXMESSAGE)
+    {
+      Particle.publish("Water Warning", String::format("%.2f", inches));    //send warning message
+    }
+    else
+    {
+      waterCount++;   //increment message count
+    }
   }
-
+  else    //normal operation
+  {
+    systemStatus = NORMAL_STATUS;   //set system status
+  }
 }
-
