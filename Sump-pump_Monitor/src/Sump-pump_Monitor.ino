@@ -30,7 +30,7 @@ enum statusCodes
 
 //how often to check system, time intervals
 const std::chrono::milliseconds currentInterval = 1s;           //check current sensor every 1 second
-const std::chrono::milliseconds waterInterval = 1min;           //check water level every minute
+const std::chrono::milliseconds waterInterval = 10s;            //check water level every minute
 const std::chrono::milliseconds temperatureInterval = 10min;    //check temp/hum sensor every 10 min
 const std::chrono::milliseconds publishInterval = 60min;        //publish every 60 min
 
