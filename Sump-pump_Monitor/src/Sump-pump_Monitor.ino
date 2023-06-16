@@ -82,6 +82,7 @@ void setup()
   //setup cloud functions, best practice to do first in setup loop
  	Particle.function("Reset Counts", resetCount);      //reset counts
   Particle.function("Stop Messages", stopMessage);    //set counts to above maximum count to stop messages
+  Particle.function("Send Status", sendStatus);       //sends current status of system
   Particle.connect();                                 //connect to particle cloud
 
   Serial.begin(9600);             //set baud rate for debug messages
@@ -168,7 +169,7 @@ void publish_status()
 }
 
 //reset countfunction
-int resetCount(String value)
+int resetCount (String value)
 {  
   waterCount    = 0;    //count for water level message
   currentCount  = 0;    //count for high current message
@@ -181,7 +182,7 @@ int resetCount(String value)
 }
 
 //stop messages function
-int stopMessage(String value)
+int stopMessage (String value)
 { 
   waterCount    = WATERMESSAGE;   //stops water level message
   currentCount  = MAXMESSAGE;     //stops high current message
@@ -191,6 +192,16 @@ int stopMessage(String value)
   errorCount    = MAXMESSAGE;     //stops sensor bus error
 
   return true;                    //return true
+}
+
+int sendStatus (String value)
+{
+  ACcurrent_function();   //pump function
+  temphum13_function();   //temp/hum function
+  sr04_function();        //ultrasonic sensor function
+
+  publish_status();       //publish status message
+  return true;            //return true
 }
 
 //accurrent function

@@ -6,5 +6,6 @@
         "chrono": "cpp"
     },
     "particle.firmwareVersion": "5.3.2",
-    "particle.targetPlatform": "p2"
+    "particle.targetPlatform": "p2",
+    "particle.targetDevice": ""
 }
