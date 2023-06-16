@@ -2264,7 +2264,7 @@ inline system_tick_t millis(void) { return HAL_Timer_Get_Milli_Seconds(); }
  23fb5bc:	4c15      	ldr	r4, [pc, #84]	; (23fb614 <loop+0x78>)
  23fb5be:	6823      	ldr	r3, [r4, #0]
  23fb5c0:	1ac0      	subs	r0, r0, r3
- 23fb5c2:	f64e 235f 	movw	r3, #59999	; 0xea5f
+ 23fb5c2:	f242 730f 	movw	r3, #9999	; 0x270f
  23fb5c6:	4298      	cmp	r0, r3
  23fb5c8:	d904      	bls.n	23fb5d4 <loop+0x38>
  23fb5ca:	f000 fe5f 	bl	23fc28c <HAL_Timer_Get_Milli_Seconds>
