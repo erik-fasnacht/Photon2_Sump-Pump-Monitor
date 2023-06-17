@@ -6,9 +6,9 @@
 #line 1 "/Users/Erik-Home/Documents/GitHub/Photon2-Project_Erik/Sump-pump_Monitor/src/Sump-pump_Monitor.ino"
 /*
  * Project Sump-pump_Monitor
- * Description: firmware for monitoring a sump pump basin
+ * Description: firmware for monitoring a sump pump basin using a Particle Photon 2
  * Author: Erik Fasnacht
- * Date: 6/13/23
+ * Date: 6/16/23
  */
 
 //library includes
@@ -31,6 +31,9 @@ void sr04_function();
 #define WATERMESSAGE    5     //defines max number of messages for water level, limits publishes when error publishes occur
 #define MAXMESSAGE      1     //defines max number of messages, limits publishes when error publishes occur
 #define FLOATSTUCK      30    //defines number of seconds for pump to remain on until float stuck event occurs
+#define FWVERSION       1     //ddefines  firmware version
+
+PRODUCT_VERSION(FWVERSION);   //set firmware version
 
 //enum for various status codes
 enum statusCodes
@@ -68,7 +71,7 @@ static temphum13_t temphum13;
 //constant values for sump pump basin
 const float IDLE_CURRENT = 1.0;     //system idle current, if value is less than this, pump not on
 const float HIGH_CURRENT = 10.0;    //high current event
-const float HIGH_WATER = 8.0;       //in inches, less than this then secondary pump isn't working
+const float HIGH_WATER = 7.0;       //in inches, less than this then secondary pump isn't working
 
 //constant values for temperature/humidity
 const float LOW_TEMP = 45.0;        //low temp value
