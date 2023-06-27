@@ -29,21 +29,21 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, ALLOC, LOAD, READONLY, DATA
  12 .module_info_crc 00000004  085ffffc  085ffffc  0001fffc  2**0
                   CONTENTS, ALLOC, LOAD, READONLY, DATA
- 13 .debug_info   00174a6f  00000000  00000000  00020000  2**0
+ 13 .debug_info   00174a6e  00000000  00000000  00020000  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 14 .debug_abbrev 00019b30  00000000  00000000  00194a6f  2**0
+ 14 .debug_abbrev 00019b30  00000000  00000000  00194a6e  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 15 .debug_loc    000452b5  00000000  00000000  001ae59f  2**0
+ 15 .debug_loc    000452b5  00000000  00000000  001ae59e  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 16 .debug_aranges 000034f0  00000000  00000000  001f3854  2**0
+ 16 .debug_aranges 000034f0  00000000  00000000  001f3853  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 17 .debug_ranges 0000c548  00000000  00000000  001f6d44  2**0
+ 17 .debug_ranges 0000c548  00000000  00000000  001f6d43  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_macro  00030a04  00000000  00000000  0020328c  2**0
+ 18 .debug_macro  00030a04  00000000  00000000  0020328b  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .debug_line   0005682d  00000000  00000000  00233c90  2**0
+ 19 .debug_line   0005682d  00000000  00000000  00233c8f  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 20 .debug_str    000cfde7  00000000  00000000  0028a4bd  2**0
+ 20 .debug_str    000cfde7  00000000  00000000  0028a4bc  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
  21 .debug_frame  00009950  00000000  00000000  0035a2a4  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
@@ -2161,7 +2161,7 @@ void sr04_function()
 
   if (waterLevel <= HIGH_WATER)
  23fb4a4:	ed94 7a00 	vldr	s14, [r4]
- 23fb4a8:	eef1 7a0c 	vmov.f32	s15, #28	; 0x40e00000  7.0
+ 23fb4a8:	eef1 7a00 	vmov.f32	s15, #16	; 0x40800000  4.0
  23fb4ac:	eeb4 7ae7 	vcmpe.f32	s14, s15
  23fb4b0:	eef1 fa10 	vmrs	APSR_nzcv, fpscr
  23fb4b4:	4c18      	ldr	r4, [pc, #96]	; (23fb518 <_Z13sr04_functionv+0x98>)
@@ -2456,7 +2456,7 @@ struct __ApplicationProductVersion {
  23fb6a0:	f003 fd6e 	bl	23ff180 <spark_protocol_instance>
  23fb6a4:	4623      	mov	r3, r4
  23fb6a6:	4622      	mov	r2, r4
- 23fb6a8:	4629      	mov	r1, r5
+ 23fb6a8:	2102      	movs	r1, #2
  23fb6aa:	f003 fd85 	bl	23ff1b8 <spark_protocol_set_product_firmware_version>
         spark_protocol_set_product_id(spark_protocol_instance(), id);
  23fb6ae:	f003 fd67 	bl	23ff180 <spark_protocol_instance>
