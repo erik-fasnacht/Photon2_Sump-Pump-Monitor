@@ -15,7 +15,7 @@
 #define WATERMESSAGE    5     //defines max number of messages for water level, limits publishes when error publishes occur
 #define MAXMESSAGE      1     //defines max number of messages, limits publishes when error publishes occur
 #define FLOATSTUCK      30    //defines number of seconds for pump to remain on until float stuck event occurs
-#define FWVERSION       2     //ddefines  firmware version
+#define FWVERSION       4     //ddefines  firmware version
 
 PRODUCT_VERSION(FWVERSION);   //set firmware version
 
@@ -39,7 +39,7 @@ const std::chrono::milliseconds publishInterval = 60min;        //publish every 
 
 //define signals for hc-sr04 sensor
 const int echoPin = A5;
-const int trigPin = S4;
+const int trigPin = A4;
 HC_SR04 rangefinder = HC_SR04(trigPin, echoPin);    //initializes pins for ultrasonic sensor
 
 //particle system mode and thread

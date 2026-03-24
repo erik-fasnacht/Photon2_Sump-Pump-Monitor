@@ -5,7 +5,7 @@
         "*.ino": "cpp",
         "chrono": "cpp"
     },
-    "particle.firmwareVersion": "5.3.2",
-    "particle.targetPlatform": "p2",
+    "particle.firmwareVersion": "6.0.0",
+    "particle.targetPlatform": "boron",
     "particle.targetDevice": ""
 }
